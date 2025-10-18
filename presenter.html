@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presenter Control</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']]
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a202c;
+            color: white;
+            padding: 20px;
+        }
+
+        .header {
+            background: #2d3748;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .session-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .qr-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #qrcode {
+            display: inline-block;
+            margin: 20px 0;
+        }
+
+        .student-link {
+            color: #667eea;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .question-box {
+            background: #2d3748;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .question-box h3 {
+            margin-bottom: 15px;
+        }
+
+        .given-info {
+            background: #4a5568;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .given-info h4 {
+            color: #48bb78;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .given-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .given-info li {
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        .controls {
+            background: #2d3748;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .step-control {
+            background: #4a5568;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .step-control.revealed {
+            background: #48bb78;
+        }
+
+        .step-control.hidden {
+            opacity: 0.6;
+        }
+
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .step-preview {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .reveal-btn {
+            background: #667eea;
+            color: white;
+        }
+
+        .reveal-btn:hover:not(:disabled) {
+            background: #5568d3;
+        }
+
+        .reveal-btn:disabled {
+            background: #718096;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background: #f56565;
+            color: white;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .reset-btn:hover {
+            background: #e53e3e;
+        }
+
+        .back-btn {
+            background: #718096;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .back-btn:hover {
+            background: #4a5568;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.hidden {
+            background: #718096;
+        }
+
+        .status.visible {
+            background: #48bb78;
+        }
+
+        .answer-badge {
+            background: #ed8936;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: #48bb78;
+            color: white;
+            font-size: 14px;
+        }
+
+        .connection-status.offline {
+            background: #f56565;
+        }
+        /* Drawing Board Styles */
+.drawing-section {
+    background: #2d3748;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.drawing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.drawing-tools {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.tool-btn {
+    padding: 8px 16px;
+    background: #4a5568;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tool-btn.active {
+    background: #667eea;
+}
+
+.tool-btn:hover {
+    background: #5568d3;
+}
+
+.color-picker {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.size-slider {
+    width: 100px;
+}
+
+#drawingCanvas {
+    background: white;
+    border-radius: 8px;
+    cursor: crosshair;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.clear-btn {
+    background: #f56565;
+}
+
+.clear-btn:hover {
+    background: #e53e3e;
+}
+    </style>
+</head>
+
+<body>
+    <div class="connection-status" id="connectionStatus">🟢 Connected</div>
+
+    <button class="back-btn" onclick="window.location.href='index.html'">← Back to Library</button>
+
+    <div class="header">
+        <div class="session-info">
+            <div>
+                <h1 id="sessionName">Loading...</h1>
+                <p>Session Code: <strong id="sessionCode"></strong></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="qr-section">
+        <h2 style="color: #333;">Students: Scan to Join</h2>
+        <div id="qrcode"></div>
+        <p style="color: #666;">Or visit:</p>
+        <p class="student-link" id="studentLink"></p>
+    </div>
+
+    <div class="question-box">
+        <h3>Problem:</h3>
+        <div id="questionText" style="margin-top: 10px; line-height: 1.6; white-space: pre-wrap;"></div>
+
+        <div class="given-info" id="givenInfo" style="display: none;">
+            <h4>Given:</h4>
+            <ul id="givenList"></ul>
+        </div>
+    </div>
+
+    <div class="drawing-section">
+        <div class="drawing-header">
+            <h3>Drawing Board</h3>
+            <div class="drawing-tools">
+                <button class="tool-btn active" onclick="setTool('pen')">✏️ Pen</button>
+                <button class="tool-btn" onclick="setTool('eraser')">🧹 Eraser</button>
+                <input type="color" class="color-picker" id="colorPicker" value="#667eea">
+                <input type="range" class="size-slider" id="sizeSlider" min="1" max="20" value="3">
+                <span style="font-size: 14px;">Size: <span id="sizeDisplay">3</span></span>
+                <button class="tool-btn clear-btn" onclick="clearCanvas()">🗑️ Clear All</button>
+            </div>
+        </div>
+        <canvas id="drawingCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <div class="controls">
+        <h3>Solution Steps - Click to Reveal:</h3>
+        <div id="stepsContainer"></div>
+        <button class="reset-btn" onclick="resetAll()">🔄 Reset All Steps</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script type="module">
+        import { database } from './firebase-config.js';
+        import { problems } from './problems/index.js';
+
+        // Load problem from sessionStorage
+        const problem = JSON.parse(sessionStorage.getItem('current_problem'));
+        const sessionId = sessionStorage.getItem('session_id');
+
+        if (!problem || !sessionId) {
+            alert('No problem loaded');
+            window.location.href = 'index.html';
+        }
+
+        // Current state
+        let currentStep = -1;
+        let sessionRef = null;
+
+        // Set up Firebase connection monitoring
+        database.ref('.info/connected').on('value', (snap) => {
+            const status = document.getElementById('connectionStatus');
+            if (snap.val() === true) {
+                status.textContent = '🟢 Connected';
+                status.classList.remove('offline');
+            } else {
+                status.textContent = '🔴 Offline';
+                status.classList.add('offline');
+            }
+        });
+
+        // Display problem info
+        document.getElementById('sessionName').textContent = problem.title;
+        document.getElementById('sessionCode').textContent = sessionId;
+        document.getElementById('questionText').textContent = problem.question;
+
+        // Display given info if available
+            if (problem.given && problem.given.length > 0) {
+                document.getElementById('givenInfo').style.display = 'block';
+                const givenList = document.getElementById('givenList');
+                problem.given.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = item;  // Use innerHTML instead of textContent
+                    givenList.appendChild(li);
+                });
+
+                // Tell MathJax to process the given section
+                if (window.MathJax && window.MathJax.typeset) {
+                    MathJax.typeset([givenList]);
+                }
+            }
+
+        // Generate QR code
+        const studentUrl = `${window.location.origin}/student.html?session=${sessionId}`;
+        document.getElementById('studentLink').textContent = studentUrl;
+
+        new QRCode(document.getElementById('qrcode'), {
+            text: studentUrl,
+            width: 200,
+            height: 200
+        });
+
+        // Initialize Firebase session
+        sessionRef = database.ref(`sessions/${sessionId}`);
+
+        // Clean up old sessions (optional - sessions older than 24 hours)
+        const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+        database.ref('sessions').orderByChild('timestamp').endAt(cutoff).once('value', (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                childSnapshot.ref.remove();
+            });
+        });
+
+        // Render steps
+        function renderSteps() {
+                const container = document.getElementById('stepsContainer');
+                container.innerHTML = '';
+
+                problem.steps.forEach((step, index) => {
+                    const isRevealed = index <= currentStep;
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = `step-control ${isRevealed ? 'revealed' : 'hidden'}`;
+
+                    stepDiv.innerHTML = `
+            <div style="flex: 1;">
+                <div class="step-title">
+                    Step ${index + 1}: ${step.title}
+                    ${step.isAnswer ? '<span class="answer-badge">ANSWER</span>' : ''}
+                    <span class="status ${isRevealed ? 'visible' : 'hidden'}">
+                        ${isRevealed ? '✓ Visible' : '● Hidden'}
+                    </span>
+                </div>
+                <div class="step-preview">
+                    <div>${step.content}</div>
+                    ${step.math ? `<div style="margin-top: 10px;">${step.math}</div>` : ''}
+                </div>
+            </div>
+            <button class="reveal-btn" onclick="revealStep(${index})" ${isRevealed ? 'disabled' : ''}>
+                ${isRevealed ? 'Revealed' : 'Reveal'}
+            </button>
+        `;
+                    container.appendChild(stepDiv);
+                });
+
+                // Tell MathJax to process the entire container
+                if (window.MathJax && window.MathJax.typeset) {
+                    try {
+                        MathJax.typeset([container]);
+                    } catch (e) {
+                        console.log('MathJax rendering error:', e);
+                    }
+                }
+            }
+
+        window.revealStep = function (stepIndex) {
+            currentStep = stepIndex;
+            renderSteps();
+            broadcastState();
+        };
+
+        window.resetAll = function () {
+            if (confirm('Reset all steps? Students will see the problem again without solutions.')) {
+                currentStep = -1;
+                renderSteps();
+                broadcastState();
+            }
+        };
+
+        // Broadcast state to Firebase
+        function broadcastState() {
+            const state = {
+                sessionId: sessionId,
+                problem: problem,
+                currentStep: currentStep,
+                timestamp: Date.now()
+            };
+
+            sessionRef.set(state).catch(error => {
+                console.error('Error broadcasting state:', error);
+                alert('Error syncing with students. Check your connection.');
+            });
+        }
+
+        // Initial render and broadcast
+        renderSteps();
+        broadcastState();
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            // Optionally mark session as ended
+            sessionRef.update({ ended: true });
+        });
+
+        // Drawing Board Setup
+            const canvas = document.getElementById('drawingCanvas');
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let currentTool = 'pen';
+            let currentColor = '#667eea';
+            let currentSize = 3;
+            let drawingData = [];
+
+            // Resize canvas for better quality on high DPI screens
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+                canvas.style.width = rect.width + 'px';
+                canvas.style.height = rect.height + 'px';
+            }
+            resizeCanvas();
+
+            // Drawing tools
+            window.setTool = function (tool) {
+                currentTool = tool;
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                event.target.classList.add('active');
+                canvas.style.cursor = tool === 'eraser' ? 'grab' : 'crosshair';
+            };
+
+            // Color and size controls
+            document.getElementById('colorPicker').addEventListener('change', (e) => {
+                currentColor = e.target.value;
+            });
+
+            document.getElementById('sizeSlider').addEventListener('input', (e) => {
+                currentSize = e.target.value;
+                document.getElementById('sizeDisplay').textContent = currentSize;
+            });
+
+            // Get mouse position relative to canvas
+            function getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            // Touch events for mobile
+            function getTouchPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (e.touches[0].clientX - rect.left) * (canvas.width / rect.width),
+                    y: (e.touches[0].clientY - rect.top) * (canvas.height / rect.height)
+                };
+            }
+
+            // Drawing functions
+            function startDrawing(e) {
+                isDrawing = true;
+                const pos = e.type.includes('touch') ? getTouchPos(e) : getMousePos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+
+                // Start a new stroke in the data
+                const stroke = {
+                    tool: currentTool,
+                    color: currentColor,
+                    size: currentSize,
+                    points: [pos],
+                    timestamp: Date.now()
+                };
+                drawingData.push(stroke);
+            }
+
+            function draw(e) {
+                if (!isDrawing) return;
+                e.preventDefault(); // Prevent scrolling on touch devices
+
+                const pos = e.type.includes('touch') ? getTouchPos(e) : getMousePos(e);
+
+                ctx.lineWidth = currentSize;
+                ctx.lineCap = 'round';
+
+                if (currentTool === 'eraser') {
+                    ctx.globalCompositeOperation = 'destination-out';
+                } else {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                }
+
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+
+                // Add point to current stroke
+                if (drawingData.length > 0) {
+                    drawingData[drawingData.length - 1].points.push(pos);
+                }
+
+                // Broadcast drawing updates
+                broadcastDrawing();
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+            }
+
+            // Mouse events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('touchend', stopDrawing);
+
+            // Clear canvas
+            window.clearCanvas = function () {
+                if (confirm('Clear the entire drawing board?')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawingData = [];
+                    broadcastDrawing();
+                }
+            };
+
+            // Broadcast drawing state
+            let drawingTimeout;
+            function broadcastDrawing() {
+                // Debounce to avoid too many updates
+                clearTimeout(drawingTimeout);
+                drawingTimeout = setTimeout(() => {
+                    if (sessionRef) {
+                        sessionRef.child('drawing').set({
+                            data: drawingData.slice(-100), // Keep last 100 strokes to avoid huge data
+                            lastUpdate: Date.now()
+                        });
+                    }
+                }, 100);
+            }
+
+            // Modify your existing broadcastState function to include drawing clear signal
+            const originalBroadcastState = broadcastState;
+            broadcastState = function () {
+                originalBroadcastState();
+                // Also broadcast that drawing should be cleared if we reset
+                if (currentStep === -1) {
+                    sessionRef.child('drawing').remove();
+                }
+            };
+
+       
+                </script>
+    </body>
+    
+    </html>

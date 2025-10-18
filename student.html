@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student View</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+
+    <!-- MathJax Configuration MUST come BEFORE loading MathJax -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$']],
+                displayMath: [['$$', '$$']]
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
+        };
+    </script>
+
+    <!-- Load MathJax AFTER configuration -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .session-code {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .live-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #48bb78;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .live-indicator.offline {
+            background: #f56565;
+            animation: none;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .question-section {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .question-section h2 {
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            color: #4a5568;
+            line-height: 1.8;
+            font-size: 16px;
+            white-space: pre-wrap;
+        }
+
+        .given-section {
+            background: #fffaf0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #ed8936;
+        }
+
+        .given-section h3 {
+            color: #c05621;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .given-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .given-section li {
+            padding: 5px 0;
+            color: #744210;
+            font-size: 14px;
+        }
+
+        .solution-section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        .step {
+            background: #f7fafc;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 10px;
+            border-left: 4px solid #48bb78;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step.answer {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .step-number {
+            color: #48bb78;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .step.answer .step-number {
+            color: #ed8936;
+        }
+
+        .step-title {
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .step-content {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .step-math {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-size: 14px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .waiting {
+            text-align: center;
+            color: #718096;
+            padding: 40px;
+            font-style: italic;
+        }
+
+        .answer-badge {
+            background: #ed8936;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .connection-error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        /* Better mobile math display */
+        .MathJax_Display {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        mjx-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            max-width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            .step-math {
+                font-size: 12px;
+            }
+
+            .question-text {
+                font-size: 14px;
+            }
+
+            .step-title {
+                font-size: 16px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+        .drawing-display {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.drawing-display h3 {
+    color: #2d3748;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.drawing-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #48bb78;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+#studentCanvas {
+    display: block;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="connection-error" id="connectionError">
+            ⚠️ Connection lost. Trying to reconnect...
+        </div>
+
+        <div class="header">
+            <h1 id="sessionName">📚 Loading Session...</h1>
+            <p class="session-code">
+                <span class="live-indicator" id="liveIndicator"></span>
+                Session: <strong id="sessionCode"></strong>
+            </p>
+        </div>
+
+        <div class="question-section">
+            <h2>Problem:</h2>
+            <div class="question-text" id="questionText"></div>
+
+            <div class="given-section" id="givenSection" style="display: none;">
+                <h3>Given:</h3>
+                <ul id="givenList"></ul>
+            </div>
+        </div>
+
+        <div class="drawing-display" id="drawingDisplay" style="display: none;">
+            <h3>
+                <span class="drawing-indicator"></span>
+                Instructor's Board
+            </h3>
+            <canvas id="studentCanvas"></canvas>
+        </div>
+
+        <div class="solution-section">
+            <h2>Solution:</h2>
+            <div id="stepsContainer">
+                <div class="waiting">
+                    Waiting for instructor to reveal steps...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { database } from './firebase-config.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+
+        if (!sessionId) {
+            alert('Invalid session link');
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('sessionCode').textContent = sessionId;
+
+        let currentProblem = null;
+        let currentStep = -1;
+        let sessionRef = database.ref(`sessions/${sessionId}`);
+
+        // Monitor connection
+        database.ref('.info/connected').on('value', (snap) => {
+            const indicator = document.getElementById('liveIndicator');
+            const error = document.getElementById('connectionError');
+
+            if (snap.val() === true) {
+                indicator.classList.remove('offline');
+                error.style.display = 'none';
+            } else {
+                indicator.classList.add('offline');
+                error.style.display = 'block';
+            }
+        });
+
+        async function renderMathInElement(element) {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                try {
+                    await MathJax.typesetPromise([element]);
+                } catch (e) {
+                    console.error('MathJax error:', e);
+                    // Fallback method
+                    if (window.MathJax.typeset) {
+                        MathJax.typeset([element]);
+                    }
+                }
+            }
+        }
+
+        async function renderProblem(problem) {
+            currentProblem = problem;
+            document.getElementById('sessionName').textContent = problem.title;
+            document.getElementById('questionText').textContent = problem.question;
+
+            // Display given info
+            if (problem.given && problem.given.length > 0) {
+                document.getElementById('givenSection').style.display = 'block';
+                const givenList = document.getElementById('givenList');
+                givenList.innerHTML = '';
+                problem.given.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = item;
+                    givenList.appendChild(li);
+                });
+            }
+
+            // Render math in question and given sections
+            await renderMathInElement(document.getElementById('questionText'));
+            await renderMathInElement(document.getElementById('givenList'));
+
+            renderSteps();
+        }
+
+        async function renderSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = '';
+
+            if (currentStep >= 0 && currentProblem) {
+                currentProblem.steps.forEach((step, index) => {
+                    if (index <= currentStep) {
+                        const stepDiv = document.createElement('div');
+                        stepDiv.className = `step ${step.isAnswer ? 'answer' : ''}`;
+
+                        stepDiv.innerHTML = `
+                            <div class="step-number">Step ${index + 1}</div>
+                            <div class="step-title">
+                                ${step.title}
+                                ${step.isAnswer ? '<span class="answer-badge">FINAL ANSWER</span>' : ''}
+                            </div>
+                            <div class="step-content">${step.content}</div>
+                            ${step.math ? `<div class="step-math">${step.math}</div>` : ''}
+                        `;
+                        container.appendChild(stepDiv);
+
+                        // Fade in animation
+                        setTimeout(() => {
+                            stepDiv.classList.add('visible');
+                        }, 100 * index);
+                    }
+                });
+
+                // Render all math in the container
+                await renderMathInElement(container);
+            } else {
+                container.innerHTML = '<div class="waiting">Waiting for instructor to reveal steps...</div>';
+            }
+        }
+
+        // Listen for Firebase updates
+        sessionRef.on('value', (snapshot) => {
+            const state = snapshot.val();
+
+            if (!state) {
+                // Session doesn't exist
+                document.getElementById('sessionName').textContent = '❌ Session Not Found';
+                document.getElementById('stepsContainer').innerHTML =
+                    '<div class="waiting">This session doesn\'t exist or has ended.</div>';
+                return;
+            }
+
+            if (state.ended) {
+                document.getElementById('sessionName').textContent = '🔚 Session Ended';
+                return;
+            }
+
+            if (!currentProblem) {
+                renderProblem(state.problem);
+            }
+
+            if (state.currentStep !== currentStep) {
+                currentStep = state.currentStep;
+                renderSteps();
+            }
+        });
+
+        const studentCanvas = document.getElementById('studentCanvas');
+            const studentCtx = studentCanvas.getContext('2d');
+
+            // Set canvas size
+            function setupStudentCanvas() {
+                // Match aspect ratio of presenter canvas
+                const aspectRatio = 800 / 400;
+                const maxWidth = Math.min(800, window.innerWidth - 40);
+                studentCanvas.width = maxWidth;
+                studentCanvas.height = maxWidth / aspectRatio;
+            }
+            setupStudentCanvas();
+            window.addEventListener('resize', setupStudentCanvas);
+
+            // Redraw the entire drawing from data
+            function redrawCanvas(drawingData) {
+                studentCtx.clearRect(0, 0, studentCanvas.width, studentCanvas.height);
+
+                if (!drawingData || drawingData.length === 0) {
+                    document.getElementById('drawingDisplay').style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('drawingDisplay').style.display = 'block';
+
+                // Scale factor to match student canvas size
+                const scaleX = studentCanvas.width / 800;
+                const scaleY = studentCanvas.height / 400;
+
+                drawingData.forEach(stroke => {
+                    if (stroke.points.length < 2) return;
+
+                    studentCtx.beginPath();
+                    studentCtx.lineWidth = stroke.size * scaleX;
+                    studentCtx.lineCap = 'round';
+
+                    if (stroke.tool === 'eraser') {
+                        studentCtx.globalCompositeOperation = 'destination-out';
+                    } else {
+                        studentCtx.globalCompositeOperation = 'source-over';
+                        studentCtx.strokeStyle = stroke.color;
+                    }
+
+                    studentCtx.moveTo(
+                        stroke.points[0].x * scaleX,
+                        stroke.points[0].y * scaleY
+                    );
+
+                    stroke.points.forEach(point => {
+                        studentCtx.lineTo(point.x * scaleX, point.y * scaleY);
+                    });
+
+                    studentCtx.stroke();
+                });
+            }
+
+        // Add separate listener for drawing updates
+            sessionRef.child('drawing').on('value', (snapshot) => {
+                const drawingState = snapshot.val();
+                if (drawingState && drawingState.data) {
+                    redrawCanvas(drawingState.data);
+                } else {
+                    redrawCanvas([]);
+                }
+            });
+
+        
+    </script>
+</body>
+
+</html>
