@@ -22,12 +22,7 @@ export default {
     // Solution steps (what you'll reveal one by one)
     steps: [
         {
-            title: "Calculate the mass",
-            content: "First, find the mass using $W = mg$:",
-            math: "$$m = \\frac{W}{g} = \\frac{20}{9.8} = 2.04 \\text{ kg}$$"
-        },
-        {
-            title: "Resolve Force 1 into components",
+            title: "(a): Resolve Force 1 into components",
             content: "Break down $F_1 = 36 \\text{ N}$ at $45°$:",
             math: "$$F_{1x} = 36\\cos(45°) = 25.5 \\text{ N}$$\n$$F_{1y} = 36\\sin(45°) = 25.5 \\text{ N}$$"
         },
@@ -54,10 +49,16 @@ export default {
         {
             title: "Calculate direction",
             content: "Find the angle from the positive x-axis:",
-            math: "$$\\theta = \\tan^{-1}\\left(\\frac{F_y}{F_x}\\right) = \\tan^{-1}\\left(\\frac{74.6}{-8.9}\\right) = 96.8°$$"
+            math: "$$\\theta = \\tan^{-1}\\left(\\frac{F_y}{F_x}\\right) = \\tan^{-1}\\left(\\frac{74.6}{-8.9}\\right) = 96.8°$$",
+            isAnswer: true
         },
         {
-            title: "Calculate acceleration (part b)",
+            title: "(b): Calculate the mass",
+            content: "First, find the mass using $W = mg$:",
+            math: "$$m = \\frac{W}{g} = \\frac{20}{9.8} = 2.04 \\text{ kg}$$"
+        },
+        {
+            title: "Calculate acceleration",
             content: "Apply Newton's second law:",
             math: "$$a = \\frac{F_{net}}{m} = \\frac{75.1}{2.04} = 36.8 \\text{ m/s}^2 \\text{ at } 96.8°$$",
             isAnswer: true
