@@ -9,6 +9,11 @@ import incline1 from './incline-1.js';
 import incline2 from './incline-2.js';
 import pulley1 from './pulley-1.js';
 import pulley2 from './pulley-2.js';
+import projectile1 from './projectile-1.js';
+import frictionDrag from './friction-drag.js';
+import energySpringHill from './energy-spring-hill.js';
+import circularVertical from './circular-vertical.js';
+import shmCart from './shm-cart.js';
 
 export const problems = [
     forces1,
@@ -20,5 +25,10 @@ export const problems = [
     incline1,
     incline2,
     pulley1,
-    pulley2
+    pulley2,
+    projectile1,
+    frictionDrag,
+    energySpringHill,
+    circularVertical,
+    shmCart
 ];
